@@ -1,7 +1,7 @@
-extern crate parser;
+extern crate calculator;
 
-use parser::interpreter::Interpreter;
-use parser::parser::Ast;
+use calculator::interpreter::Interpreter;
+use calculator::parser::Ast;
 use std::error::Error as StdError;
 use std::io;
 

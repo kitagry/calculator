@@ -1,3 +1,5 @@
+//! lexerは字句解析を行い、Tokenの配列を出します。
+//! 詳しくは[`lex`](/lexer/fn.lex.html)を参考にしてください。
 use super::{Annot, Error, Loc, Token};
 use std::error::Error as StdError;
 use std::fmt;
@@ -39,6 +41,8 @@ impl fmt::Display for LexError {
 
 impl StdError for LexError {}
 
+/// lexは文字列を受け取り、Token列を返す関数です。
+/// 不正な文字などがあればLexErrorを返します。
 pub fn lex(input: &str) -> Result<Vec<Token>, LexError> {
     let mut tokens = Vec::new();
     let input = input.as_bytes();
