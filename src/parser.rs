@@ -7,7 +7,9 @@ use std::str::FromStr;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum AstKind {
+    Variable(String),
     Num(u64),
+    EqOp { l: Box<Ast>, r: Box<Ast> },
     UniOp { op: UniOp, e: Box<Ast> },
     BinOp { op: BinOp, l: Box<Ast>, r: Box<Ast> },
 }
@@ -15,8 +17,22 @@ pub enum AstKind {
 pub type Ast = Annot<AstKind>;
 
 impl Ast {
+    fn variable(s: String, loc: Loc) -> Self {
+        Self::new(AstKind::Variable(s), loc)
+    }
+
     fn num(n: u64, loc: Loc) -> Self {
         Self::new(AstKind::Num(n), loc)
+    }
+
+    fn eq(l: Ast, r: Ast, loc: Loc) -> Self {
+        Self::new(
+            AstKind::EqOp {
+                l: Box::new(l),
+                r: Box::new(r),
+            },
+            loc,
+        )
     }
 
     fn uniop(op: UniOp, e: Ast, loc: Loc) -> Self {
@@ -137,14 +153,46 @@ fn parse_expr<Tokens>(tokens: &mut Peekable<Tokens>) -> Result<Ast, ParseError>
 where
     Tokens: Iterator<Item = Token>,
 {
+    match tokens.peek().map(|tok| tok.value.clone()) {
+        Some(TokenKind::Variable(_)) => {
+            let var = match tokens.next() {
+                Some(Token {
+                    value: TokenKind::Variable(s),
+                    loc,
+                }) => Ast::variable(s, loc),
+                _ => unreachable!(),
+            };
+
+            let token = tokens.next();
+            match token {
+                Some(Token {
+                    value: TokenKind::Equal,
+                    ..
+                }) => {
+                    let calc = parse_calc(tokens)?;
+                    let loc = var.loc.merge(&calc.loc);
+                    Ok(Ast::eq(var, calc, loc))
+                }
+                _ => Err(ParseError::UnexpectedToken(token.unwrap())),
+            }
+        }
+        _ => parse_expr3(tokens),
+    }
+}
+
+fn parse_calc<Tokens>(tokens: &mut Peekable<Tokens>) -> Result<Ast, ParseError>
+where
+    Tokens: Iterator<Item = Token>,
+{
     parse_expr3(tokens)
 }
 
+/// 数字の前の+, -を認識する
 fn parse_expr1<Tokens>(tokens: &mut Peekable<Tokens>) -> Result<Ast, ParseError>
 where
     Tokens: Iterator<Item = Token>,
 {
-    match tokens.peek().map(|tok| tok.value) {
+    match tokens.peek().map(|tok| tok.value.clone()) {
         Some(TokenKind::Plus) | Some(TokenKind::Minus) => {
             let op = match tokens.next() {
                 Some(Token {
@@ -166,6 +214,8 @@ where
     }
 }
 
+/// ただの数字か()で囲まれた部分をパースする
+/// もし、()で囲まれていれば普通のパースを行う
 fn parse_atom<Tokens>(tokens: &mut Peekable<Tokens>) -> Result<Ast, ParseError>
 where
     Tokens: Iterator<Item = Token>,
@@ -270,38 +320,45 @@ impl From<ParseError> for Error {
 
 #[test]
 fn test_parser() {
+    // a = 1 + 2 * 3 - -10
     let ast = parse(vec![
-        Token::number(1, Loc(0, 1)),
-        Token::plus(Loc(2, 3)),
-        Token::number(2, Loc(4, 5)),
-        Token::asterisk(Loc(6, 7)),
-        Token::number(3, Loc(8, 9)),
-        Token::minus(Loc(10, 11)),
-        Token::minus(Loc(12, 13)),
-        Token::number(10, Loc(13, 15)),
+        Token::variable("a".to_string(), Loc(0, 1)),
+        Token::equal(Loc(2, 3)),
+        Token::number(1, Loc(4, 5)),
+        Token::plus(Loc(6, 7)),
+        Token::number(2, Loc(8, 9)),
+        Token::asterisk(Loc(10, 11)),
+        Token::number(3, Loc(12, 13)),
+        Token::minus(Loc(14, 15)),
+        Token::minus(Loc(16, 17)),
+        Token::number(10, Loc(17, 19)),
     ]);
 
     assert_eq!(
         ast,
-        Ok(Ast::binop(
-            BinOp::sub(Loc(10, 11)),
+        Ok(Ast::eq(
+            Ast::variable("a".to_string(), Loc(0, 1)),
             Ast::binop(
-                BinOp::add(Loc(2, 3)),
-                Ast::num(1, Loc(0, 1)),
+                BinOp::sub(Loc(14, 15)),
                 Ast::binop(
-                    BinOp::new(BinOpKind::Mult, Loc(6, 7)),
-                    Ast::num(2, Loc(4, 5)),
-                    Ast::num(3, Loc(8, 9)),
-                    Loc(4, 9)
+                    BinOp::add(Loc(6, 7)),
+                    Ast::num(1, Loc(4, 5)),
+                    Ast::binop(
+                        BinOp::new(BinOpKind::Mult, Loc(10, 11)),
+                        Ast::num(2, Loc(8, 9)),
+                        Ast::num(3, Loc(12, 13)),
+                        Loc(8, 13)
+                    ),
+                    Loc(4, 13),
                 ),
-                Loc(0, 9),
+                Ast::uniop(
+                    UniOp::minus(Loc(16, 17)),
+                    Ast::num(10, Loc(17, 19)),
+                    Loc(16, 19)
+                ),
+                Loc(4, 19)
             ),
-            Ast::uniop(
-                UniOp::minus(Loc(12, 13)),
-                Ast::num(10, Loc(13, 15)),
-                Loc(12, 15)
-            ),
-            Loc(0, 15)
+            Loc(0, 19)
         ))
     )
 }

@@ -57,8 +57,8 @@ pub fn lex(input: &str) -> Result<Vec<Token>, LexError> {
     }
 
     while pos < input.len() {
-        // println!("input[{}]: {}", pos, input[pos]);
         match input[pos] {
+            b'a'..=b'z' | b'A'..=b'Z' => lex_a_token!(lex_variable(input, pos)),
             b'0'..=b'9' => lex_a_token!(lex_number(input, pos)),
             b'+' => lex_a_token!(lex_plus(input, pos)),
             b'-' => lex_a_token!(lex_minus(input, pos)),
@@ -66,6 +66,7 @@ pub fn lex(input: &str) -> Result<Vec<Token>, LexError> {
             b'/' => lex_a_token!(lex_slash(input, pos)),
             b'(' => lex_a_token!(lex_lparen(input, pos)),
             b')' => lex_a_token!(lex_rparen(input, pos)),
+            b'=' => lex_a_token!(lex_equal(input, pos)),
             b' ' | b'\n' | b'\t' => {
                 let ((), p) = skip_spaces(input, pos);
                 pos = p;
@@ -96,6 +97,20 @@ fn recognize_many(input: &[u8], mut pos: usize, mut f: impl FnMut(u8) -> bool) -
         pos += 1;
     }
     pos
+}
+
+fn lex_variable(input: &[u8], pos: usize) -> Result<(Token, usize), LexError> {
+    use regex::Regex;
+    use std::str::from_utf8;
+
+    let start = pos;
+    let char_regex = Regex::new("[a-zA-Z]").unwrap();
+    let end = recognize_many(input, start, |b| {
+        char_regex.is_match(from_utf8(&[b]).unwrap())
+    });
+
+    let s = from_utf8(&input[start..end]).unwrap();
+    Ok((Token::variable(s.to_string(), Loc(start, end)), end))
 }
 
 fn lex_number(input: &[u8], pos: usize) -> Result<(Token, usize), LexError> {
@@ -131,6 +146,10 @@ fn lex_rparen(input: &[u8], start: usize) -> Result<(Token, usize), LexError> {
     consume_byte(input, start, b')').map(|(_, end)| (Token::rparen(Loc(start, end)), end))
 }
 
+fn lex_equal(input: &[u8], start: usize) -> Result<(Token, usize), LexError> {
+    consume_byte(input, start, b'=').map(|(_, end)| (Token::equal(Loc(start, end)), end))
+}
+
 fn skip_spaces(input: &[u8], pos: usize) -> ((), usize) {
     let pos = recognize_many(input, pos, |b| b" \n\t".contains(&b));
     ((), pos)
@@ -139,16 +158,18 @@ fn skip_spaces(input: &[u8], pos: usize) -> ((), usize) {
 #[test]
 fn test_lexer() {
     assert_eq!(
-        lex("1 + 2 * 3 - -10"),
+        lex("a = 1 + 2 * 3 - -10"),
         Ok(vec![
-            Token::number(1, Loc(0, 1)),
-            Token::plus(Loc(2, 3)),
-            Token::number(2, Loc(4, 5)),
-            Token::asterisk(Loc(6, 7)),
-            Token::number(3, Loc(8, 9)),
-            Token::minus(Loc(10, 11)),
-            Token::minus(Loc(12, 13)),
-            Token::number(10, Loc(13, 15)),
+            Token::variable("a".to_string(), Loc(0, 1)),
+            Token::equal(Loc(2, 3)),
+            Token::number(1, Loc(4, 5)),
+            Token::plus(Loc(6, 7)),
+            Token::number(2, Loc(8, 9)),
+            Token::asterisk(Loc(10, 11)),
+            Token::number(3, Loc(12, 13)),
+            Token::minus(Loc(14, 15)),
+            Token::minus(Loc(16, 17)),
+            Token::number(10, Loc(17, 19)),
         ])
     )
 }

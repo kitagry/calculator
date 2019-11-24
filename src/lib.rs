@@ -37,8 +37,11 @@ impl<T> Annot<T> {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+/// この計算機が認識する文字の種類
+/// Copyトレイトを一旦消してみる
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TokenKind {
+    Variable(String),
     Number(u64),
     Plus,
     Minus,
@@ -46,12 +49,14 @@ pub enum TokenKind {
     Slash,
     LParen,
     RParen,
+    Equal,
 }
 
 impl fmt::Display for TokenKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use self::TokenKind::*;
         match self {
+            Variable(s) => s.fmt(f),
             Number(n) => n.fmt(f),
             Plus => write!(f, "+"),
             Minus => write!(f, "-"),
@@ -59,6 +64,7 @@ impl fmt::Display for TokenKind {
             Slash => write!(f, "/"),
             LParen => write!(f, "("),
             RParen => write!(f, ")"),
+            Equal => write!(f, "="),
         }
     }
 }
@@ -66,6 +72,10 @@ impl fmt::Display for TokenKind {
 pub type Token = Annot<TokenKind>;
 
 impl Token {
+    fn variable(s: String, loc: Loc) -> Self {
+        Self::new(TokenKind::Variable(s), loc)
+    }
+
     fn number(n: u64, loc: Loc) -> Self {
         Self::new(TokenKind::Number(n), loc)
     }
@@ -92,6 +102,10 @@ impl Token {
 
     fn rparen(loc: Loc) -> Self {
         Self::new(TokenKind::RParen, loc)
+    }
+
+    fn equal(loc: Loc) -> Self {
+        Self::new(TokenKind::Equal, loc)
     }
 }
 

@@ -7,13 +7,14 @@ impl RpnCompiler {
         RpnCompiler
     }
 
+    /// 構文木を入力として受け取り、数式をポーランド記法で返す関数
     pub fn compile(&mut self, expr: &Ast) -> String {
         let mut buf = String::new();
         self.compile_inner(expr, &mut buf);
         buf
     }
 
-    pub fn compile_inner(&mut self, expr: &Ast, buf: &mut String) {
+    fn compile_inner(&mut self, expr: &Ast, buf: &mut String) {
         use super::parser::AstKind::*;
 
         match expr.value {
@@ -33,6 +34,7 @@ impl RpnCompiler {
                 buf.push_str(" ");
                 self.compile_binop(&op.value, buf)
             }
+            _ => unimplemented!(),
         }
     }
 

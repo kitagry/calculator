@@ -10,10 +10,24 @@ impl Interpreter {
         Interpreter
     }
 
+    /// 構文木を入力に受け取り、結果を返す関数
+    /// 現在は整数しか返すことができないが、変更する予定
     pub fn eval(&mut self, expr: &Ast) -> Result<i64, InterpreterError> {
         use super::parser::AstKind::*;
         match expr.value {
+            Variable(_) => unreachable!(),
             Num(n) => Ok(n as i64),
+            EqOp { ref l, ref r } => {
+                let r = self.eval(r)?;
+
+                match &l.value {
+                    Variable(s) => {
+                        unimplemented!();
+                    }
+                    _ => unreachable!(),
+                }
+                Ok(r)
+            }
             UniOp { ref op, ref e } => {
                 let e = self.eval(e)?;
                 Ok(self.eval_uniop(op, e))
