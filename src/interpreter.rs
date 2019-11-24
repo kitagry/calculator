@@ -1,13 +1,18 @@
 use super::parser::{Ast, BinOp, UniOp};
 use super::{print_annot, Annot};
+use std::collections::HashMap;
 use std::error::Error as StdError;
 use std::fmt;
 
-pub struct Interpreter;
+pub struct Interpreter {
+    variables: HashMap<String, i64>,
+}
 
 impl Interpreter {
     pub fn new() -> Self {
-        Interpreter
+        Interpreter {
+            variables: HashMap::new(),
+        }
     }
 
     /// 構文木を入力に受け取り、結果を返す関数
@@ -22,7 +27,7 @@ impl Interpreter {
 
                 match &l.value {
                     Variable(s) => {
-                        unimplemented!();
+                        self.variables.insert(s.to_string(), r);
                     }
                     _ => unreachable!(),
                 }
