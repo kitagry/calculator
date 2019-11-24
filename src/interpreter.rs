@@ -19,9 +19,15 @@ impl Interpreter {
     /// 現在は整数しか返すことができないが、変更する予定
     pub fn eval(&mut self, expr: &Ast) -> Result<i64, InterpreterError> {
         use super::parser::AstKind::*;
-        match expr.value {
-            Variable(_) => unreachable!(),
-            Num(n) => Ok(n as i64),
+        match &expr.value {
+            Variable(s) => match self.variables.get(&s.to_string()) {
+                Some(n) => Ok(*n),
+                None => Err(InterpreterError::new(
+                    InterpreterErrorKind::NotDefinedVariable(s.to_string()),
+                    expr.loc.clone(),
+                )),
+            },
+            Num(n) => Ok(*n as i64),
             EqOp { ref l, ref r } => {
                 let r = self.eval(r)?;
 
@@ -77,6 +83,7 @@ impl Interpreter {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum InterpreterErrorKind {
+    NotDefinedVariable(String),
     DivisionByZero,
 }
 
@@ -91,7 +98,12 @@ impl InterpreterError {
 
 impl fmt::Display for InterpreterError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "division by zero")
+        use self::InterpreterErrorKind::*;
+
+        match &self.value {
+            NotDefinedVariable(s) => write!(f, "name {} is not defined", s),
+            DivisionByZero => write!(f, "division by zero"),
+        }
     }
 }
 

@@ -224,6 +224,7 @@ where
         .next()
         .ok_or(ParseError::Eof)
         .and_then(|tok| match tok.value {
+            TokenKind::Variable(s) => Ok(Ast::variable(s, tok.loc)),
             TokenKind::Number(n) => Ok(Ast::num(n, tok.loc)),
             TokenKind::LParen => {
                 let e = parse_expr(tokens)?;
