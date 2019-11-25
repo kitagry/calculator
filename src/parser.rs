@@ -153,38 +153,27 @@ fn parse_expr<Tokens>(tokens: &mut Peekable<Tokens>) -> Result<Ast, ParseError>
 where
     Tokens: Iterator<Item = Token>,
 {
-    match tokens.peek().map(|tok| tok.value.clone()) {
-        Some(TokenKind::Variable(_)) => {
-            let var = match tokens.next() {
-                Some(Token {
-                    value: TokenKind::Variable(s),
-                    loc,
-                }) => Ast::variable(s, loc),
-                _ => unreachable!(),
-            };
-
-            let token = tokens.next();
-            match token {
-                Some(Token {
-                    value: TokenKind::Equal,
-                    ..
-                }) => {
-                    let calc = parse_calc(tokens)?;
-                    let loc = var.loc.merge(&calc.loc);
-                    Ok(Ast::eq(var, calc, loc))
+    let left_ast = parse_expr3(tokens)?;
+    match tokens.next() {
+        Some(Annot {
+            value: TokenKind::Equal,
+            loc,
+        }) => {
+            let right_ast = parse_expr3(tokens)?;
+            match left_ast.value {
+                AstKind::Variable(_) => {
+                    let loc = left_ast.loc.merge(&right_ast.loc);
+                    Ok(Ast::eq(left_ast, right_ast, loc))
                 }
-                _ => Err(ParseError::UnexpectedToken(token.unwrap())),
+                _ => Err(ParseError::UnexpectedToken(Token {
+                    value: TokenKind::Equal,
+                    loc,
+                })),
             }
         }
-        _ => parse_expr3(tokens),
+        None => Ok(left_ast),
+        _ => Err(ParseError::Eof),
     }
-}
-
-fn parse_calc<Tokens>(tokens: &mut Peekable<Tokens>) -> Result<Ast, ParseError>
-where
-    Tokens: Iterator<Item = Token>,
-{
-    parse_expr3(tokens)
 }
 
 /// 数字の前の+, -を認識する
