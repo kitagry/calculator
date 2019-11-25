@@ -106,7 +106,7 @@ impl BinOp {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ParseError {
     UnexpectedToken(Token),
     NotExpression(Token),
@@ -214,7 +214,7 @@ where
         .ok_or(ParseError::Eof)
         .and_then(|tok| match tok.value {
             TokenKind::Variable(s) => Ok(Ast::variable(s, tok.loc)),
-            TokenKind::Number(n) => Ok(Ast::num(n, tok.loc)),
+            TokenKind::Int(n) => Ok(Ast::num(n, tok.loc)),
             TokenKind::LParen => {
                 let e = parse_expr(tokens)?;
                 match tokens.next() {
@@ -314,14 +314,14 @@ fn test_parser() {
     let ast = parse(vec![
         Token::variable("a".to_string(), Loc(0, 1)),
         Token::equal(Loc(2, 3)),
-        Token::number(1, Loc(4, 5)),
+        Token::int(1, Loc(4, 5)),
         Token::plus(Loc(6, 7)),
-        Token::number(2, Loc(8, 9)),
+        Token::int(2, Loc(8, 9)),
         Token::asterisk(Loc(10, 11)),
-        Token::number(3, Loc(12, 13)),
+        Token::int(3, Loc(12, 13)),
         Token::minus(Loc(14, 15)),
         Token::minus(Loc(16, 17)),
-        Token::number(10, Loc(17, 19)),
+        Token::int(10, Loc(17, 19)),
     ]);
 
     assert_eq!(
@@ -350,5 +350,5 @@ fn test_parser() {
             ),
             Loc(0, 19)
         ))
-    )
+    );
 }

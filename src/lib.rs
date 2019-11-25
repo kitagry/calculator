@@ -39,10 +39,11 @@ impl<T> Annot<T> {
 
 /// この計算機が認識する文字の種類
 /// Copyトレイトを一旦消してみる
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TokenKind {
     Variable(String),
-    Number(u64),
+    Int(u64),
+    Float(f64),
     Plus,
     Minus,
     Asterisk,
@@ -57,7 +58,8 @@ impl fmt::Display for TokenKind {
         use self::TokenKind::*;
         match self {
             Variable(s) => s.fmt(f),
-            Number(n) => n.fmt(f),
+            Int(n) => n.fmt(f),
+            Float(l) => l.fmt(f),
             Plus => write!(f, "+"),
             Minus => write!(f, "-"),
             Asterisk => write!(f, "*"),
@@ -76,8 +78,12 @@ impl Token {
         Self::new(TokenKind::Variable(s), loc)
     }
 
-    fn number(n: u64, loc: Loc) -> Self {
-        Self::new(TokenKind::Number(n), loc)
+    fn int(n: u64, loc: Loc) -> Self {
+        Self::new(TokenKind::Int(n), loc)
+    }
+
+    fn float(f: f64, loc: Loc) -> Self {
+        Self::new(TokenKind::Float(f), loc)
     }
 
     fn plus(loc: Loc) -> Self {
@@ -109,7 +115,7 @@ impl Token {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Error {
     Lexer(LexError),
     Parser(ParseError),

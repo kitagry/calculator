@@ -118,8 +118,17 @@ fn lex_number(input: &[u8], pos: usize) -> Result<(Token, usize), LexError> {
     let start = pos;
     let end = recognize_many(input, start, |b| b"1234567890".contains(&b));
 
-    let n = from_utf8(&input[start..end]).unwrap().parse().unwrap();
-    Ok((Token::number(n, Loc(start, end)), end))
+    if b".".contains(&input[end]) {
+        let end = recognize_many(input, end + 1, |b| b"1234567890".contains(&b));
+        let f = from_utf8(&input[start..end])
+            .unwrap()
+            .parse::<f64>()
+            .unwrap();
+        Ok((Token::float(f, Loc(start, end)), end))
+    } else {
+        let n = from_utf8(&input[start..end]).unwrap().parse().unwrap();
+        Ok((Token::int(n, Loc(start, end)), end))
+    }
 }
 
 fn lex_plus(input: &[u8], start: usize) -> Result<(Token, usize), LexError> {
@@ -158,18 +167,18 @@ fn skip_spaces(input: &[u8], pos: usize) -> ((), usize) {
 #[test]
 fn test_lexer() {
     assert_eq!(
-        lex("a = 1 + 2 * 3 - -10"),
+        lex("a = 1. + 2 * 3 - -10."),
         Ok(vec![
             Token::variable("a".to_string(), Loc(0, 1)),
             Token::equal(Loc(2, 3)),
-            Token::number(1, Loc(4, 5)),
-            Token::plus(Loc(6, 7)),
-            Token::number(2, Loc(8, 9)),
-            Token::asterisk(Loc(10, 11)),
-            Token::number(3, Loc(12, 13)),
-            Token::minus(Loc(14, 15)),
-            Token::minus(Loc(16, 17)),
-            Token::number(10, Loc(17, 19)),
+            Token::float(1., Loc(4, 6)),
+            Token::plus(Loc(7, 8)),
+            Token::int(2, Loc(9, 10)),
+            Token::asterisk(Loc(11, 12)),
+            Token::int(3, Loc(13, 14)),
+            Token::minus(Loc(15, 16)),
+            Token::minus(Loc(17, 18)),
+            Token::float(10., Loc(18, 21)),
         ])
     )
 }
