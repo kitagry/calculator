@@ -38,7 +38,6 @@ impl<T> Annot<T> {
 }
 
 /// この計算機が認識する文字の種類
-/// Copyトレイトを一旦消してみる
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenKind {
     Variable(String),
