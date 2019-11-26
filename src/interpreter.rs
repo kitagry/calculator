@@ -3,6 +3,7 @@ use super::{print_annot, Annot};
 use std::collections::HashMap;
 use std::error::Error as StdError;
 use std::fmt;
+use std::ops::{Add, Div, Mul, Sub};
 
 pub struct Interpreter {
     variables: HashMap<String, Value>,
@@ -12,6 +13,62 @@ pub struct Interpreter {
 pub enum Value {
     Int(i64),
     Float(f64),
+}
+
+impl Add for Value {
+    type Output = Value;
+
+    fn add(self, other: Value) -> Value {
+        use Value::*;
+        match (self, other) {
+            (Int(i), Int(j)) => Int(i + j),
+            (Int(i), Float(j)) => Float(i as f64 + j),
+            (Float(i), Int(j)) => Float(i + j as f64),
+            (Float(i), Float(j)) => Float(i + j),
+        }
+    }
+}
+
+impl Sub for Value {
+    type Output = Value;
+
+    fn sub(self, other: Value) -> Value {
+        use Value::*;
+        match (self, other) {
+            (Int(i), Int(j)) => Int(i - j),
+            (Int(i), Float(j)) => Float(i as f64 - j),
+            (Float(i), Int(j)) => Float(i - j as f64),
+            (Float(i), Float(j)) => Float(i - j),
+        }
+    }
+}
+
+impl Mul for Value {
+    type Output = Value;
+
+    fn mul(self, other: Value) -> Value {
+        use Value::*;
+        match (self, other) {
+            (Int(i), Int(j)) => Int(i * j),
+            (Int(i), Float(j)) => Float(i as f64 * j),
+            (Float(i), Int(j)) => Float(i * j as f64),
+            (Float(i), Float(j)) => Float(i * j),
+        }
+    }
+}
+
+impl Div for Value {
+    type Output = Value;
+
+    fn div(self, other: Value) -> Value {
+        use Value::*;
+        match (self, other) {
+            (Int(i), Int(j)) => Int(i / j),
+            (Int(i), Float(j)) => Float(i as f64 / j),
+            (Float(i), Int(j)) => Float(i / j as f64),
+            (Float(i), Float(j)) => Float(i / j),
+        }
+    }
 }
 
 impl fmt::Display for Value {
@@ -97,33 +154,13 @@ impl Interpreter {
         use Value::*;
 
         match op.value {
-            Add => match (l, r) {
-                (Int(l), Int(r)) => Ok(Int(l + r)),
-                (Int(l), Float(r)) => Ok(Float(l as f64 + r)),
-                (Float(l), Int(r)) => Ok(Float(l + r as f64)),
-                (Float(l), Float(r)) => Ok(Float(l + r)),
-            },
-            Sub => match (l, r) {
-                (Int(l), Int(r)) => Ok(Int(l - r)),
-                (Int(l), Float(r)) => Ok(Float(l as f64 - r)),
-                (Float(l), Int(r)) => Ok(Float(l - r as f64)),
-                (Float(l), Float(r)) => Ok(Float(l - r)),
-            },
-            Mult => match (l, r) {
-                (Int(l), Int(r)) => Ok(Int(l * r)),
-                (Int(l), Float(r)) => Ok(Float(l as f64 * r)),
-                (Float(l), Int(r)) => Ok(Float(l * r as f64)),
-                (Float(l), Float(r)) => Ok(Float(l * r)),
-            },
+            Add => Ok(l + r),
+            Sub => Ok(l - r),
+            Mult => Ok(l * r),
             Div => match r {
                 Int(0) => Err(InterpreterErrorKind::DivisionByZero),
                 _ => {
-                    let res = match (l, r) {
-                        (Int(l), Int(r)) => Int(l / r),
-                        (Int(l), Float(r)) => Float(l as f64 / r),
-                        (Float(l), Int(r)) => Float(l / r as f64),
-                        (Float(l), Float(r)) => Float(l / r),
-                    };
+                    let res = l / r;
 
                     match res {
                         Int(_) => Ok(res),
