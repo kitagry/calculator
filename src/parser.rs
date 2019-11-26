@@ -5,10 +5,11 @@ use std::fmt;
 use std::iter::Peekable;
 use std::str::FromStr;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum AstKind {
     Variable(String),
-    Num(u64),
+    Int(u64),
+    Float(f64),
     EqOp { l: Box<Ast>, r: Box<Ast> },
     UniOp { op: UniOp, e: Box<Ast> },
     BinOp { op: BinOp, l: Box<Ast>, r: Box<Ast> },
@@ -21,8 +22,12 @@ impl Ast {
         Self::new(AstKind::Variable(s), loc)
     }
 
-    fn num(n: u64, loc: Loc) -> Self {
-        Self::new(AstKind::Num(n), loc)
+    fn int(n: u64, loc: Loc) -> Self {
+        Self::new(AstKind::Int(n), loc)
+    }
+
+    fn float(f: f64, loc: Loc) -> Self {
+        Self::new(AstKind::Float(f), loc)
     }
 
     fn eq(l: Ast, r: Ast, loc: Loc) -> Self {
@@ -214,7 +219,8 @@ where
         .ok_or(ParseError::Eof)
         .and_then(|tok| match tok.value {
             TokenKind::Variable(s) => Ok(Ast::variable(s, tok.loc)),
-            TokenKind::Int(n) => Ok(Ast::num(n, tok.loc)),
+            TokenKind::Int(n) => Ok(Ast::int(n, tok.loc)),
+            TokenKind::Float(f) => Ok(Ast::float(f, tok.loc)),
             TokenKind::LParen => {
                 let e = parse_expr(tokens)?;
                 match tokens.next() {
@@ -310,18 +316,18 @@ impl From<ParseError> for Error {
 
 #[test]
 fn test_parser() {
-    // a = 1 + 2 * 3 - -10
+    // a = 1. + 2 * 3 - -10.
     let ast = parse(vec![
         Token::variable("a".to_string(), Loc(0, 1)),
         Token::equal(Loc(2, 3)),
-        Token::int(1, Loc(4, 5)),
-        Token::plus(Loc(6, 7)),
-        Token::int(2, Loc(8, 9)),
-        Token::asterisk(Loc(10, 11)),
-        Token::int(3, Loc(12, 13)),
-        Token::minus(Loc(14, 15)),
-        Token::minus(Loc(16, 17)),
-        Token::int(10, Loc(17, 19)),
+        Token::float(1., Loc(4, 6)),
+        Token::plus(Loc(7, 8)),
+        Token::int(2, Loc(9, 10)),
+        Token::asterisk(Loc(11, 12)),
+        Token::int(3, Loc(13, 14)),
+        Token::minus(Loc(15, 16)),
+        Token::minus(Loc(17, 18)),
+        Token::float(10., Loc(18, 21)),
     ]);
 
     assert_eq!(
@@ -329,26 +335,26 @@ fn test_parser() {
         Ok(Ast::eq(
             Ast::variable("a".to_string(), Loc(0, 1)),
             Ast::binop(
-                BinOp::sub(Loc(14, 15)),
+                BinOp::sub(Loc(15, 16)),
                 Ast::binop(
-                    BinOp::add(Loc(6, 7)),
-                    Ast::num(1, Loc(4, 5)),
+                    BinOp::add(Loc(7, 8)),
+                    Ast::float(1., Loc(4, 6)),
                     Ast::binop(
-                        BinOp::new(BinOpKind::Mult, Loc(10, 11)),
-                        Ast::num(2, Loc(8, 9)),
-                        Ast::num(3, Loc(12, 13)),
-                        Loc(8, 13)
+                        BinOp::new(BinOpKind::Mult, Loc(11, 12)),
+                        Ast::int(2, Loc(9, 10)),
+                        Ast::int(3, Loc(13, 14)),
+                        Loc(9, 14)
                     ),
-                    Loc(4, 13),
+                    Loc(4, 14),
                 ),
                 Ast::uniop(
-                    UniOp::minus(Loc(16, 17)),
-                    Ast::num(10, Loc(17, 19)),
-                    Loc(16, 19)
+                    UniOp::minus(Loc(17, 18)),
+                    Ast::float(10., Loc(18, 21)),
+                    Loc(17, 21)
                 ),
-                Loc(4, 19)
+                Loc(4, 21)
             ),
-            Loc(0, 19)
+            Loc(0, 21)
         ))
     );
 }

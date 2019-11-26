@@ -27,7 +27,8 @@ impl Interpreter {
                     expr.loc.clone(),
                 )),
             },
-            Num(n) => Ok(*n as i64),
+            Int(n) => Ok(*n as i64),
+            Float(f) => Ok(*f as i64),
             EqOp { ref l, ref r } => {
                 let r = self.eval(r)?;
 

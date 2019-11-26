@@ -18,7 +18,7 @@ impl RpnCompiler {
         use super::parser::AstKind::*;
 
         match expr.value {
-            Num(n) => buf.push_str(&n.to_string()),
+            Int(n) => buf.push_str(&n.to_string()),
             UniOp { ref op, ref e } => {
                 self.compile_uniop(&op.value, buf);
                 self.compile_inner(e, buf);
