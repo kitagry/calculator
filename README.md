@@ -7,3 +7,7 @@
 ### 変数代入
 
 ![variable image](./images/variable.png)
+
+### 少数計算
+
+![float image](./images/float.png)
