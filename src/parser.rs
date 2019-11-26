@@ -18,19 +18,19 @@ pub enum AstKind {
 pub type Ast = Annot<AstKind>;
 
 impl Ast {
-    fn variable(s: String, loc: Loc) -> Self {
+    pub fn variable(s: String, loc: Loc) -> Self {
         Self::new(AstKind::Variable(s), loc)
     }
 
-    fn int(n: u64, loc: Loc) -> Self {
+    pub fn int(n: u64, loc: Loc) -> Self {
         Self::new(AstKind::Int(n), loc)
     }
 
-    fn float(f: f64, loc: Loc) -> Self {
+    pub fn float(f: f64, loc: Loc) -> Self {
         Self::new(AstKind::Float(f), loc)
     }
 
-    fn eq(l: Ast, r: Ast, loc: Loc) -> Self {
+    pub fn eq(l: Ast, r: Ast, loc: Loc) -> Self {
         Self::new(
             AstKind::EqOp {
                 l: Box::new(l),
@@ -40,11 +40,11 @@ impl Ast {
         )
     }
 
-    fn uniop(op: UniOp, e: Ast, loc: Loc) -> Self {
+    pub fn uniop(op: UniOp, e: Ast, loc: Loc) -> Self {
         Self::new(AstKind::UniOp { op, e: Box::new(e) }, loc)
     }
 
-    fn binop(op: BinOp, l: Ast, r: Ast, loc: Loc) -> Self {
+    pub fn binop(op: BinOp, l: Ast, r: Ast, loc: Loc) -> Self {
         Self::new(
             AstKind::BinOp {
                 op,
@@ -74,11 +74,11 @@ pub enum UniOpKind {
 pub type UniOp = Annot<UniOpKind>;
 
 impl UniOp {
-    fn plus(loc: Loc) -> Self {
+    pub fn plus(loc: Loc) -> Self {
         Self::new(UniOpKind::Plus, loc)
     }
 
-    fn minus(loc: Loc) -> Self {
+    pub fn minus(loc: Loc) -> Self {
         Self::new(UniOpKind::Minus, loc)
     }
 }
@@ -94,19 +94,19 @@ pub enum BinOpKind {
 pub type BinOp = Annot<BinOpKind>;
 
 impl BinOp {
-    fn add(loc: Loc) -> Self {
+    pub fn add(loc: Loc) -> Self {
         Self::new(BinOpKind::Add, loc)
     }
 
-    fn sub(loc: Loc) -> Self {
+    pub fn sub(loc: Loc) -> Self {
         Self::new(BinOpKind::Sub, loc)
     }
 
-    fn mult(loc: Loc) -> Self {
+    pub fn mult(loc: Loc) -> Self {
         Self::new(BinOpKind::Mult, loc)
     }
 
-    fn div(loc: Loc) -> Self {
+    pub fn div(loc: Loc) -> Self {
         Self::new(BinOpKind::Div, loc)
     }
 }
@@ -340,7 +340,7 @@ fn test_parser() {
                     BinOp::add(Loc(7, 8)),
                     Ast::float(1., Loc(4, 6)),
                     Ast::binop(
-                        BinOp::new(BinOpKind::Mult, Loc(11, 12)),
+                        BinOp::mult(Loc(11, 12)),
                         Ast::int(2, Loc(9, 10)),
                         Ast::int(3, Loc(13, 14)),
                         Loc(9, 14)

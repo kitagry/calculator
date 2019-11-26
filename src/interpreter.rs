@@ -5,7 +5,24 @@ use std::error::Error as StdError;
 use std::fmt;
 
 pub struct Interpreter {
-    variables: HashMap<String, i64>,
+    variables: HashMap<String, Value>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Value {
+    Int(i64),
+    Float(f64),
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use Value::*;
+
+        match self {
+            Int(i) => write!(f, "{}", i),
+            Float(fl) => write!(f, "{}", fl),
+        }
+    }
 }
 
 impl Interpreter {
@@ -17,7 +34,7 @@ impl Interpreter {
 
     /// 構文木を入力に受け取り、結果を返す関数
     /// 現在は整数しか返すことができないが、変更する予定
-    pub fn eval(&mut self, expr: &Ast) -> Result<i64, InterpreterError> {
+    pub fn eval(&mut self, expr: &Ast) -> Result<Value, InterpreterError> {
         use super::parser::AstKind::*;
         match &expr.value {
             Variable(s) => match self.variables.get(&s.to_string()) {
@@ -27,8 +44,8 @@ impl Interpreter {
                     expr.loc.clone(),
                 )),
             },
-            Int(n) => Ok(*n as i64),
-            Float(f) => Ok(*f as i64),
+            Int(n) => Ok(Value::Int(*n as i64)),
+            Float(f) => Ok(Value::Float(*f)),
             EqOp { ref l, ref r } => {
                 let r = self.eval(r)?;
 
@@ -57,27 +74,56 @@ impl Interpreter {
         }
     }
 
-    fn eval_uniop(&mut self, op: &UniOp, n: i64) -> i64 {
+    fn eval_uniop(&mut self, op: &UniOp, n: Value) -> Value {
         use super::parser::UniOpKind::*;
+        use Value::*;
+
         match op.value {
             Plus => n,
-            Minus => -n,
+            Minus => match n {
+                Int(i) => Int(-i),
+                Float(f) => Float(-f),
+            },
         }
     }
 
-    fn eval_binop(&mut self, op: &BinOp, l: i64, r: i64) -> Result<i64, InterpreterErrorKind> {
+    fn eval_binop(
+        &mut self,
+        op: &BinOp,
+        l: Value,
+        r: Value,
+    ) -> Result<Value, InterpreterErrorKind> {
         use super::parser::BinOpKind::*;
+        use Value::*;
+
         match op.value {
-            Add => Ok(l + r),
-            Sub => Ok(l - r),
-            Mult => Ok(l * r),
-            Div => {
-                if r == 0 {
-                    Err(InterpreterErrorKind::DivisionByZero)
-                } else {
-                    Ok(l / r)
-                }
-            }
+            Add => match (l, r) {
+                (Int(l), Int(r)) => Ok(Int(l + r)),
+                (Int(l), Float(r)) => Ok(Float(l as f64 + r)),
+                (Float(l), Int(r)) => Ok(Float(l + r as f64)),
+                (Float(l), Float(r)) => Ok(Float(l + r)),
+            },
+            Sub => match (l, r) {
+                (Int(l), Int(r)) => Ok(Int(l - r)),
+                (Int(l), Float(r)) => Ok(Float(l as f64 - r)),
+                (Float(l), Int(r)) => Ok(Float(l - r as f64)),
+                (Float(l), Float(r)) => Ok(Float(l - r)),
+            },
+            Mult => match (l, r) {
+                (Int(l), Int(r)) => Ok(Int(l * r)),
+                (Int(l), Float(r)) => Ok(Float(l as f64 * r)),
+                (Float(l), Int(r)) => Ok(Float(l * r as f64)),
+                (Float(l), Float(r)) => Ok(Float(l * r)),
+            },
+            Div => match r {
+                Int(0) | Float(0.) => Err(InterpreterErrorKind::DivisionByZero),
+                _ => match (l, r) {
+                    (Int(l), Int(r)) => Ok(Int(l * r)),
+                    (Int(l), Float(r)) => Ok(Float(l as f64 * r)),
+                    (Float(l), Int(r)) => Ok(Float(l * r as f64)),
+                    (Float(l), Float(r)) => Ok(Float(l * r)),
+                },
+            },
         }
     }
 }
@@ -109,3 +155,41 @@ impl fmt::Display for InterpreterError {
 }
 
 impl StdError for InterpreterError {}
+
+#[test]
+fn test_eval() {
+    use super::parser::{Ast, BinOp, UniOp};
+    use super::Loc;
+    let mut interpreter = Interpreter::new();
+
+    // a = 1. + 2 * 3 - -10.
+    assert_eq!(
+        interpreter
+            .eval(&Ast::eq(
+                Ast::variable("a".to_string(), Loc(0, 1)),
+                Ast::binop(
+                    BinOp::sub(Loc(15, 16)),
+                    Ast::binop(
+                        BinOp::add(Loc(7, 8)),
+                        Ast::float(1., Loc(4, 6)),
+                        Ast::binop(
+                            BinOp::mult(Loc(11, 12)),
+                            Ast::int(2, Loc(9, 10)),
+                            Ast::int(3, Loc(13, 14)),
+                            Loc(9, 14)
+                        ),
+                        Loc(4, 14),
+                    ),
+                    Ast::uniop(
+                        UniOp::minus(Loc(17, 18)),
+                        Ast::float(10., Loc(18, 21)),
+                        Loc(17, 21)
+                    ),
+                    Loc(4, 21)
+                ),
+                Loc(0, 21)
+            ))
+            .unwrap(),
+        Value::Float(17.)
+    );
+}

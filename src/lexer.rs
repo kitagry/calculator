@@ -118,7 +118,7 @@ fn lex_number(input: &[u8], pos: usize) -> Result<(Token, usize), LexError> {
     let start = pos;
     let end = recognize_many(input, start, |b| b"1234567890".contains(&b));
 
-    if b".".contains(&input[end]) {
+    if input.len() > end && b".".contains(&input[end]) {
         let end = recognize_many(input, end + 1, |b| b"1234567890".contains(&b));
         let f = from_utf8(&input[start..end])
             .unwrap()
