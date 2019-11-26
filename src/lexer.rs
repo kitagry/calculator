@@ -7,6 +7,7 @@ use std::fmt;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum LexErrorKind {
     InvalidChar(char),
+    Overflow,
     Eof,
 }
 
@@ -15,6 +16,10 @@ pub type LexError = Annot<LexErrorKind>;
 impl LexError {
     fn invalid_char(c: char, loc: Loc) -> Self {
         LexError::new(LexErrorKind::InvalidChar(c), loc)
+    }
+
+    fn overflow(loc: Loc) -> Self {
+        LexError::new(LexErrorKind::Overflow, loc)
     }
 
     fn eof(loc: Loc) -> Self {
@@ -34,6 +39,7 @@ impl fmt::Display for LexError {
         let loc = &self.loc;
         match self.value {
             InvalidChar(c) => write!(f, "{}: invalid char '{}", loc, c),
+            Overflow => write!(f, "overflow!"),
             Eof => write!(f, "End of file"),
         }
     }
@@ -120,14 +126,14 @@ fn lex_number(input: &[u8], pos: usize) -> Result<(Token, usize), LexError> {
 
     if input.len() > end && b".".contains(&input[end]) {
         let end = recognize_many(input, end + 1, |b| b"1234567890".contains(&b));
-        let f = from_utf8(&input[start..end])
-            .unwrap()
-            .parse::<f64>()
-            .unwrap();
+        let f = from_utf8(&input[start..end]).unwrap().parse().unwrap();
         Ok((Token::float(f, Loc(start, end)), end))
     } else {
-        let n = from_utf8(&input[start..end]).unwrap().parse().unwrap();
-        Ok((Token::int(n, Loc(start, end)), end))
+        let n = from_utf8(&input[start..end]).unwrap().parse();
+        match n {
+            Ok(n) => Ok((Token::int(n, Loc(start, end)), end)),
+            Err(_) => Err(LexError::overflow(Loc(start, end))),
+        }
     }
 }
 

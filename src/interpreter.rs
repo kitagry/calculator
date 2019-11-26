@@ -116,13 +116,26 @@ impl Interpreter {
                 (Float(l), Float(r)) => Ok(Float(l * r)),
             },
             Div => match r {
-                Int(0) | Float(0.) => Err(InterpreterErrorKind::DivisionByZero),
-                _ => match (l, r) {
-                    (Int(l), Int(r)) => Ok(Int(l * r)),
-                    (Int(l), Float(r)) => Ok(Float(l as f64 * r)),
-                    (Float(l), Int(r)) => Ok(Float(l * r as f64)),
-                    (Float(l), Float(r)) => Ok(Float(l * r)),
-                },
+                Int(0) => Err(InterpreterErrorKind::DivisionByZero),
+                _ => {
+                    let res = match (l, r) {
+                        (Int(l), Int(r)) => Int(l / r),
+                        (Int(l), Float(r)) => Float(l as f64 / r),
+                        (Float(l), Int(r)) => Float(l / r as f64),
+                        (Float(l), Float(r)) => Float(l / r),
+                    };
+
+                    match res {
+                        Int(_) => Ok(res),
+                        Float(f) => {
+                            if f.is_normal() {
+                                Ok(res)
+                            } else {
+                                Err(InterpreterErrorKind::DivisionByZero)
+                            }
+                        }
+                    }
+                }
             },
         }
     }
