@@ -15,17 +15,25 @@ pub enum Value {
     Float(f64),
 }
 
+fn eval_binop_atom<F, G>(a: Value, b: Value, int_op: &F, float_op: &G) -> Value
+where
+    F: Fn(i64, i64) -> i64,
+    G: Fn(f64, f64) -> f64,
+{
+    use Value::*;
+    match (a, b) {
+        (Int(i), Int(j)) => Int(int_op(i, j)),
+        (Int(i), Float(j)) => Float(float_op(i as f64, j)),
+        (Float(i), Int(j)) => Float(float_op(i, j as f64)),
+        (Float(i), Float(j)) => Float(float_op(i, j)),
+    }
+}
+
 impl Add for Value {
     type Output = Value;
 
     fn add(self, other: Value) -> Value {
-        use Value::*;
-        match (self, other) {
-            (Int(i), Int(j)) => Int(i + j),
-            (Int(i), Float(j)) => Float(i as f64 + j),
-            (Float(i), Int(j)) => Float(i + j as f64),
-            (Float(i), Float(j)) => Float(i + j),
-        }
+        eval_binop_atom(self, other, &|i, j| i + j, &|i, j| i + j)
     }
 }
 
@@ -33,13 +41,7 @@ impl Sub for Value {
     type Output = Value;
 
     fn sub(self, other: Value) -> Value {
-        use Value::*;
-        match (self, other) {
-            (Int(i), Int(j)) => Int(i - j),
-            (Int(i), Float(j)) => Float(i as f64 - j),
-            (Float(i), Int(j)) => Float(i - j as f64),
-            (Float(i), Float(j)) => Float(i - j),
-        }
+        eval_binop_atom(self, other, &|i, j| i - j, &|i, j| i - j)
     }
 }
 
@@ -47,13 +49,7 @@ impl Mul for Value {
     type Output = Value;
 
     fn mul(self, other: Value) -> Value {
-        use Value::*;
-        match (self, other) {
-            (Int(i), Int(j)) => Int(i * j),
-            (Int(i), Float(j)) => Float(i as f64 * j),
-            (Float(i), Int(j)) => Float(i * j as f64),
-            (Float(i), Float(j)) => Float(i * j),
-        }
+        eval_binop_atom(self, other, &|i, j| i * j, &|i, j| i * j)
     }
 }
 
@@ -61,13 +57,7 @@ impl Div for Value {
     type Output = Value;
 
     fn div(self, other: Value) -> Value {
-        use Value::*;
-        match (self, other) {
-            (Int(i), Int(j)) => Int(i / j),
-            (Int(i), Float(j)) => Float(i as f64 / j),
-            (Float(i), Int(j)) => Float(i / j as f64),
-            (Float(i), Float(j)) => Float(i / j),
-        }
+        eval_binop_atom(self, other, &|i, j| i / j, &|i, j| i / j)
     }
 }
 

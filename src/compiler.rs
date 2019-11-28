@@ -8,6 +8,7 @@ impl RpnCompiler {
     }
 
     /// 構文木を入力として受け取り、数式をポーランド記法で返す関数
+    /// NOTE: このメソッドは壊れている。今の所治す予定はない。
     pub fn compile(&mut self, expr: &Ast) -> String {
         let mut buf = String::new();
         self.compile_inner(expr, &mut buf);

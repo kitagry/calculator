@@ -171,6 +171,19 @@ fn skip_spaces(input: &[u8], pos: usize) -> ((), usize) {
 }
 
 #[test]
+fn test_lex_number() {
+    assert_eq!(
+        lex_number("12".as_bytes(), 0).unwrap(),
+        (Token::int(12, Loc(0, 2)), 2)
+    );
+
+    assert_eq!(
+        lex_number("1.2".as_bytes(), 0).unwrap(),
+        (Token::float(1.2, Loc(0, 3)), 3)
+    );
+}
+
+#[test]
 fn test_lexer() {
     assert_eq!(
         lex("a = 1. + 2 * 3 - -10."),
